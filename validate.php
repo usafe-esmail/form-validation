@@ -17,5 +17,30 @@ if ($error_fields) {
     header("Location: form.php?error_fields=" . implode(",", $error_fields));
     exit;
 }
-echo "Data is valid and ready to be processed!";
+$mysqli = new mysqli("localhost", "root", "", "contact_form");
+if ($mysqli->connect_errno) {
+    die("فشل الاتصال بقاعدة البيانات: " . $mysqli->connect_error);
+}
+$createTableSQL = "CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    password VARCHAR(255) NOT NULL
+)";
+if (!$mysqli->query($createTableSQL)) {
+    die("خطأ في إنشاء الجدول: " . $mysqli->error);
+}
+$stmt = $mysqli->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
+if (!$stmt) {
+    die("فشل تجهيز الاستعلام: " . $mysqli->error);
+}
+$hashed_password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+$stmt->bind_param("sss", $_POST['name'], $_POST['email'], $hashed_password);
+if ($stmt->execute()) {
+    echo "تم إضافة البيانات بنجاح!";
+} else {
+    echo "حدث خطأ أثناء إضافة البيانات: " . $stmt->error;
+}
+$stmt->close();
+$mysqli->close();
 ?>
